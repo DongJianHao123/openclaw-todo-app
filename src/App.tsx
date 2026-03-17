@@ -1,130 +1,73 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect } from 'react'
+import { Routes, Route, NavLink } from 'react-router-dom'
+import { Todo } from './components/Todo/Todo'
+import { News } from './components/News/News'
+import { Finance } from './components/Finance/Finance'
 import './App.css'
-import type { Todo } from './types'
 
 function App() {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
+  // 主题切换，存在localStorage
+  const [theme, setTheme] = useState<'auto' | 'light' | 'dark'>('auto')
 
-  const addTodo = () => {
-    if (!inputValue.trim()) return
-    
-    const newTodo: Todo = {
-      id: Date.now(),
-      text: inputValue.trim(),
-      completed: false,
-      createdAt: new Date(),
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('openclaw-theme') as 'auto' | 'light' | 'dark'
+    if (savedTheme) {
+      setTheme(savedTheme)
     }
-    
-    setTodos([...todos, newTodo])
-    setInputValue('')
-  }
+  }, [])
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ))
-  }
-
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id))
-  }
-
-  const clearCompleted = () => {
-    setTodos(todos.filter(todo => !todo.completed))
-  }
-
-  const filteredTodos = useMemo(() => {
-    switch (filter) {
-      case 'active':
-        return todos.filter(todo => !todo.completed)
-      case 'completed':
-        return todos.filter(todo => todo.completed)
-      default:
-        return todos
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+    if (theme !== 'auto') {
+      root.classList.add(theme)
     }
-  }, [todos, filter])
+    localStorage.setItem('openclaw-theme', theme)
+  }, [theme])
 
-  const activeCount = todos.filter(todo => !todo.completed).length
+  const toggleTheme = () => {
+    setTheme(prev => {
+      if (prev === 'auto') return 'light'
+      if (prev === 'light') return 'dark'
+      return 'auto'
+    })
+  }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      addTodo()
+  const getThemeEmoji = () => {
+    switch (theme) {
+      case 'auto': return '🌓'
+      case 'light': return '☀️'
+      case 'dark': return '🌙'
+      default: return '🌓'
     }
   }
 
   return (
     <div className="app">
-      <h1>🦞 待办事项</h1>
-      
-      <div className="input-section">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="添加新任务..."
-          className="todo-input"
-        />
-        <button onClick={addTodo} className="add-btn">
-          添加
-        </button>
-      </div>
-
-      <div className="filter-section">
-        <button
-          className={filter === 'all' ? 'active' : ''}
-          onClick={() => setFilter('all')}
-        >
-          全部
-        </button>
-        <button
-          className={filter === 'active' ? 'active' : ''}
-          onClick={() => setFilter('active')}
-        >
-          进行中
-        </button>
-        <button
-          className={filter === 'completed' ? 'active' : ''}
-          onClick={() => setFilter('completed')}
-        >
-          已完成
-        </button>
-      </div>
-
-      <ul className="todo-list">
-        {filteredTodos.map(todo => (
-          <li key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
-            <input
-              type="checkbox"
-              checked={todo.completed}
-              onChange={() => toggleTodo(todo.id)}
-              className="checkbox"
-            />
-            <span className="todo-text">{todo.text}</span>
-            <button
-              onClick={() => deleteTodo(todo.id)}
-              className="delete-btn"
-            >
-              ×
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {todos.length > 0 && (
-        <div className="footer">
-          <span className="item-count">
-            {activeCount} 个任务进行中
-          </span>
-          {todos.some(todo => todo.completed) && (
-            <button onClick={clearCompleted} className="clear-btn">
-              清除已完成
-            </button>
-          )}
+      <nav className="navbar">
+        <div className="navbar-brand">🦞 OpenClaw Personal</div>
+        <div className="navbar-links">
+          <NavLink to="/" className="nav-link">
+            待办
+          </NavLink>
+          <NavLink to="/news" className="nav-link">
+            新闻
+          </NavLink>
+          <NavLink to="/finance" className="nav-link">
+            金融
+          </NavLink>
+          <button className="theme-toggle" onClick={toggleTheme} title="切换主题">
+            {getThemeEmoji()}
+          </button>
         </div>
-      )}
+      </nav>
+      <main className="container">
+        <Routes>
+          <Route path="/" element={<Todo />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/finance" element={<Finance />} />
+        </Routes>
+      </main>
     </div>
   )
 }
